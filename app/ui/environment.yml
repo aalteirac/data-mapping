@@ -1,0 +1,8 @@
+name: sf_env
+channels:
+- snowflake
+dependencies:
+- scikit-learn
+- seaborn 
+- plotly
+- snowflake-native-apps-permission

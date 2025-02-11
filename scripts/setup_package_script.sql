@@ -1,0 +1,3 @@
+
+-- No comment at the end....
+GRANT APPLICATION ROLE DATA_MAPPING_APP.app_public to role DEMO_ROLE;

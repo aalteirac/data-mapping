@@ -1,0 +1,24 @@
+manifest_version: 1
+artifacts:
+  readme: README.md
+  setup_script: setup_script.sql
+  default_streamlit: ui."Data Mapping"
+
+privileges:
+  - CREATE DATABASE:
+      description: "Ability to create Sample DB - Table"
+  - IMPORTED PRIVILEGES ON SNOWFLAKE DB:
+      description: "Enables application to use Cortex Functions"
+
+references:
+  - AUDIENCE_DATA:
+      label: "Table that contains Audience data"
+      description: "Table having info needed to activate campaigns.\r\nClick Cancel and CREATED SAMPLE DB if needed."
+      privileges:
+        - SELECT
+        - INSERT
+        - UPDATE
+        - REFERENCES
+      object_type: TABLE
+      multi_valued: false
+      register_callback: logic.register_single_callback

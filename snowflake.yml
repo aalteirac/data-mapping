@@ -1,0 +1,23 @@
+definition_version: '2'
+
+entities:
+  pkg:
+    type: application package
+    identifier: DATA_MAPPING_PKG
+    stage: app_src.stage
+    manifest: app/manifest.yml
+    artifacts:
+      - src: app/*
+        dest: ./
+    meta:
+      role: demo_role
+      warehouse: DEMO_WH
+  app:
+    type: application
+    identifier: DATA_MAPPING_APP
+    from:
+      target: pkg
+    debug: false
+    meta:
+      role: demo_role
+      warehouse: DEMO_WH
