@@ -14,41 +14,41 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded")
  
-if 'BRANDING' not in st.session_state:
-        st.session_state['BRANDING'] ='SNOWFLAKE'
-CP_NAME=  st.session_state['BRANDING']        
-with st.sidebar:
-    placeholder = st.empty()
-    brand=st.selectbox("Choose Branding",['Snowflake','Acme'])
-    st.session_state['BRANDING'] = brand.upper()
-    CP_NAME=  st.session_state['BRANDING'] 
-    with placeholder:
-        render_image(f'''{CP_NAME.lower()}.png''')  
-    if st.button("Change Data Source"):
-        permissions.request_reference("AUDIENCE_DATA")
-    with st.expander("Setup Sample DB"):
-        if not permissions.get_held_account_privileges(["CREATE DATABASE"]):
-                st.error("The app needs CREATE DB privilege to Create Sample DB")
-                permissions.request_account_privileges(["CREATE DATABASE"])
-                st.stop()
-        if st.button('CREATE SAMPLE DB'):  
-            res=session.sql("CALL out.sampledb()").collect()
-            st.info('DATA_MAPPING_DB_TEST.PUBLIC.SALES_DATA successfully created!')
-            if len(ref)==0:
-                permissions.request_reference("AUDIENCE_DATA")
-                # st.info("Please Select Existing Table containing Audience Data")
-                st.stop()
-        if st.button('REVOKE FOR DELETION'):
-            res=session.sql("CALL out.revoke_grants()").collect()
-
 session = get_active_session()
- 
-st.markdown("# Data Preparation")  
-ref=permissions.get_reference_associations("AUDIENCE_DATA")
 
 
-
-if len(ref)==0:
+def init():
+    if 'BRANDING' not in st.session_state:
+        st.session_state['BRANDING'] ='Snowflake'
+    global CP_NAME    
+    CP_NAME =  st.session_state['BRANDING']        
+    with st.sidebar:
+        placeholder = st.empty()
+        brand=st.selectbox("Choose Branding",['Snowflake','Acme'])
+        st.session_state['BRANDING'] = brand.upper()
+        CP_NAME=  st.session_state['BRANDING'] 
+        with placeholder:
+            render_image(f'''{CP_NAME.lower()}.png''')  
+        if st.button("Change Data Source"):
+            permissions.request_reference("AUDIENCE_DATA")
+        with st.expander("Setup Sample DB"):
+            if not permissions.get_held_account_privileges(["CREATE DATABASE"]):
+                    st.error("The app needs CREATE DB privilege to Create Sample DB")
+                    permissions.request_account_privileges(["CREATE DATABASE"])
+                    st.stop()
+            if st.button('CREATE SAMPLE DB'):  
+                res=session.sql("CALL out.sampledb()").collect()
+                st.info('DATA_MAPPING_DB_TEST.PUBLIC.SALES_DATA successfully created!')
+                if len(ref)==0:
+                    permissions.request_reference("AUDIENCE_DATA")
+                    # st.info("Please Select Existing Table containing Audience Data")
+                    st.stop()
+            if st.button('REVOKE FOR DELETION'):
+                res=session.sql("CALL out.revoke_grants()").collect()
+    
+    st.markdown("# Data Preparation")  
+    ref=permissions.get_reference_associations("AUDIENCE_DATA")
+    if len(ref)==0:
         st.info("Please Select Existing Table containing Audience Data")
         st.stop()
 
@@ -165,6 +165,7 @@ def get_description(pict,wid,desc):
             st.markdown(desc)  
     st.divider()          
 
+init()
 
 cols_target=[       'Event timestamp, date, DATE, TS',
                     'User email address',
