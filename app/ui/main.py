@@ -56,7 +56,8 @@ def get_automapping(colorig,coldest,model):
     with st.spinner(f"Asking LLM {mod} ... Please wait ..."):
         completion_model = f'{model}'
         prompt = f"""
-            {datetime.datetime.now()} You are python developper, you will get 2 lists of columns name, do you best to match the 2 lists. Return a dict of this mapping. Only answer the dict nothing else. Do not include column with no matcing (None) 
+            {datetime.datetime.now()} You are python developper, you will get 2 lists of columns name, do you best to match the 2 lists. Return a dict of the second list mapping with the first list. Only answer the dict nothing else. 
+                                      Do not include column with no matching (None). Return the dict with double quote for key and value
 
         """
         promptall = f"""select snowflake.cortex.complete(
@@ -64,8 +65,8 @@ def get_automapping(colorig,coldest,model):
                                     $$
                                         {prompt}
                                         ###
-                                        {''.join(colorig)}
-                                        {''.join(coldest)}
+                                        first list is {''.join(colorig)}
+                                        second list is {''.join(coldest)}
                                         ###
                                     $$) as ANSWER
                 """
@@ -202,10 +203,12 @@ with tab1:
     ''')
     if 'AI_RES' not in st.session_state:
         st.session_state['AI_RES'] =get_automapping(cols_origin,cols_target_label,mod)
+    if st.button("Refresh"):
+        st.session_state['AI_RES'] =get_automapping(cols_origin,cols_target_label,mod)   
     jres = json.loads(st.session_state['AI_RES'])
     cols_origin_AI = list(jres.keys())
     cols_target_label_AI = list(jres.values())   
-    r=genView(cols_origin_AI,cols_target_label_AI)
+    r=genView(cols_target_label_AI,cols_origin_AI)
     st.subheader("Generated View Creation")
     st.code(r, language='sql')
     get_view_btns(view_exist,r,st,'AI')
