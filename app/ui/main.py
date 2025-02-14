@@ -24,16 +24,28 @@ def init():
     filenames = [ file for file in filenames if file.endswith( ('.png','.jpg','.jpeg','.gif','.webp') ) ]
     brands=[os.path.splitext(filename)[0] for filename in filenames]
     brands= [b.title() for b in brands]
+    brands.sort(key=lambda y: y.lower())
+    filenames.sort(key=lambda y: y.lower())
     global ref
     ref=permissions.get_reference_associations("AUDIENCE_DATA")
+    firstLoading=False
     if 'BRANDING' not in st.session_state:
+        firstLoading=True
+        # try:
+        #     ox=brands.index('Snowflake')
+        # except:  
+        #     ox=0    
         st.session_state['BRANDING'] =brands[0]
     global CP_NAME    
     CP_NAME =  st.session_state['BRANDING']        
     with st.sidebar:
         placeholder = st.empty()
-        brand=st.selectbox("Choose Branding",brands)
-        st.session_state['BRANDING'] = brand.upper()
+        if firstLoading:
+            brand=st.selectbox("Choose Branding",brands,index=brands.index(st.session_state['BRANDING'].title()),key="brs")
+        else:
+            brand=st.selectbox("Choose Branding",brands,key="brs")    
+
+        st.session_state['BRANDING'] = st.session_state['brs'].upper()
         CP_NAME=  st.session_state['BRANDING'] 
         with placeholder:
             idx=brands.index(brand)
@@ -47,7 +59,6 @@ def init():
             if not permissions.get_held_account_privileges(["CREATE DATABASE"]):
                     st.error("The app needs CREATE DB privilege to Create Sample DB")
                     permissions.request_account_privileges(["CREATE DATABASE"])
-                    time.sleep(3)
                     st.stop()
             if st.button('CREATE SAMPLE DB'):  
                 res=session.sql("CALL out.sampledb()").collect()

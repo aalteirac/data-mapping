@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 
+
 def render_image(filepath: str, width=200):
    mime_type = filepath.split('.')[-1:][0].lower()
    with open('img/'+filepath, "rb") as f:

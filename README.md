@@ -6,6 +6,10 @@
 - Cosine Similarity
 - Manual
 
+## Demo
+[![Demo Video](https://img.youtube.com/vi/XILdRECHCWI/0.jpg)](https://www.youtube.com/watch?v=XILdRECHCWI)
+
+
 ## Prerequisites
 
 1. Snowflake CLI
