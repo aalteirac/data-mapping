@@ -8,6 +8,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import plotly.graph_objects as go
 import snowflake.permissions as permissions
 import json
+import time
+import os
 
 st.set_page_config(
     page_title='Data Mapping',
@@ -18,23 +20,34 @@ session = get_active_session()
 
 
 def init():
+    filenames = os.listdir('./img/brands')
+    filenames = [ file for file in filenames if file.endswith( ('.png','.jpg','.jpeg','.gif','.webp') ) ]
+    brands=[os.path.splitext(filename)[0] for filename in filenames]
+    brands= [b.title() for b in brands]
+    global ref
+    ref=permissions.get_reference_associations("AUDIENCE_DATA")
     if 'BRANDING' not in st.session_state:
-        st.session_state['BRANDING'] ='Snowflake'
+        st.session_state['BRANDING'] =brands[0]
     global CP_NAME    
     CP_NAME =  st.session_state['BRANDING']        
     with st.sidebar:
         placeholder = st.empty()
-        brand=st.selectbox("Choose Branding",['Snowflake','Acme'])
+        brand=st.selectbox("Choose Branding",brands)
         st.session_state['BRANDING'] = brand.upper()
         CP_NAME=  st.session_state['BRANDING'] 
         with placeholder:
-            render_image(f'''{CP_NAME.lower()}.png''')  
+            idx=brands.index(brand)
+            imgb=filenames[idx]
+            render_image(f'''brands/{imgb}''')  
         if st.button("Change Data Source"):
             permissions.request_reference("AUDIENCE_DATA")
         with st.expander("Setup Sample DB"):
+            if not permissions.get_held_account_privileges(["IMPORTED PRIVILEGES ON SNOWFLAKE DB"]):
+                    permissions.request_account_privileges(["IMPORTED PRIVILEGES ON SNOWFLAKE DB"])
             if not permissions.get_held_account_privileges(["CREATE DATABASE"]):
                     st.error("The app needs CREATE DB privilege to Create Sample DB")
                     permissions.request_account_privileges(["CREATE DATABASE"])
+                    time.sleep(3)
                     st.stop()
             if st.button('CREATE SAMPLE DB'):  
                 res=session.sql("CALL out.sampledb()").collect()
@@ -47,7 +60,6 @@ def init():
                 res=session.sql("CALL out.revoke_grants()").collect()
     
     st.markdown("# Data Preparation")  
-    ref=permissions.get_reference_associations("AUDIENCE_DATA")
     if len(ref)==0:
         st.info("Please Select Existing Table containing Audience Data")
         st.stop()
@@ -65,8 +77,8 @@ def get_automapping(colorig,coldest,model):
                                     $$
                                         {prompt}
                                         ###
-                                        first list is {''.join(colorig)}
-                                        second list is {''.join(coldest)}
+                                        first list is: {''.join(colorig)}
+                                        second list is: {''.join(coldest)}
                                         ###
                                     $$) as ANSWER
                 """
@@ -130,10 +142,10 @@ def get_fig_heatmap(similarity_matrix, columns_1, columns_2):
     fig.update_layout( margin=dict(l=20, r=60, t=0, b=20),showlegend=False,height=330)
     return fig
 
-def get_view_btns(view_exist,r,el,pref):
+def get_view_btns(view_exist,r,el,pref,disabled=False):
     with st.container():
         if view_exist:
-            if el.button('Recreate View',use_container_width=True,key=pref+'_one'):
+            if el.button('Recreate View',use_container_width=True,key=pref+'_one',disabled=disabled):
                 r=session.sql(r).collect()
                 session.sql(f"""grant SELECT on view OUT.{CP_NAME.upper()}_VIEW to application role app_public;""").collect()
                 res=session.sql(f"""SELECT * from OUT.{CP_NAME.upper()}_VIEW;""").collect()
@@ -145,7 +157,7 @@ def get_view_btns(view_exist,r,el,pref):
                 res=session.sql(f"""DROP VIEW OUT.{CP_NAME.upper()}_VIEW;""").collect()
                 st.experimental_rerun()
         if not view_exist: 
-            if el.button('Create View',use_container_width=True,key=pref+'_three'):
+            if el.button('Create View',use_container_width=True,key=pref+'_three',disabled=disabled):
                 r=session.sql(r).collect()
                 session.sql(f"""grant SELECT on view OUT.{CP_NAME.upper()}_VIEW to application role app_public;""").collect()
                 el=session.sql(f"""SELECT * from OUT.{CP_NAME.upper()}_VIEW;""").collect()
@@ -161,7 +173,7 @@ def get_description(pict,wid,desc):
     with st.container():
         col1,col2,col3=st.columns([on,tw,th])
         with col1:
-            render_image(pict,wid) 
+            render_image('system/'+pict,wid) 
         with col3:
             st.markdown(desc)  
     st.divider()          
@@ -190,9 +202,9 @@ cols_origin = session.sql("SELECT * FROM REFERENCE('AUDIENCE_DATA') limit 1").to
 
 view_exist=checkViewGenerated("OUT",f"{CP_NAME.upper()}_VIEW")[0][0]>0
 
-tab1, tab2, tab3 = st.tabs(["Auto Mappping -  AI","Automatic Mapping - Cosine", "Manual Mapping"])
+tab1, tab2, tab3 = st.tabs(["Manual Mapping","Automatic Mapping - Cosine","Auto Mappping -  AI" ])
 
-with tab1:
+with tab3:
     models=['claude-3-5-sonnet','gemma-7b','snowflake-arctic','deepseek-r1']
     # mod=st.selectbox("Choose Model",models)
     mod=models[0]
@@ -208,10 +220,16 @@ with tab1:
     jres = json.loads(st.session_state['AI_RES'])
     cols_origin_AI = list(jres.keys())
     cols_target_label_AI = list(jres.values())   
+
     r=genView(cols_target_label_AI,cols_origin_AI)
+    err=len(cols_target_label_AI)!=len(cols_target_label)
+    if err:
+        result= [item for item in cols_target_label if item not in cols_origin_AI]
+        st.error("Missing mandatory fields: " + ' | \n'.join(result),icon="⚠️")
+
     st.subheader("Generated View Creation")
     st.code(r, language='sql')
-    get_view_btns(view_exist,r,st,'AI')
+    get_view_btns(view_exist,r,st,'AI',err)
 
 with tab2:
     get_description('cosine.png',100,f'''
@@ -225,8 +243,8 @@ with tab2:
         column_mapping[key] = cols_target_label[cols_target.index(value)] 
 
     mapping_df = pd.DataFrame(list(column_mapping.items()), columns=['Column from Selected Table ', f'''Mapped to {CP_NAME.title()} Column'''])
-    cols_origin = mapping_df.iloc[:, 0].tolist() 
-    cols_target_label = mapping_df.iloc[:, 1].tolist()
+    cols_origin_auto = mapping_df.iloc[:, 0].tolist() 
+    cols_target_label_auto = mapping_df.iloc[:, 1].tolist()
 
     col1,col2,col3=st.columns(3)
 
@@ -235,12 +253,12 @@ with tab2:
     
     col2.subheader("Mapping Based on Name Similarity")
     col2.dataframe(mapping_df,use_container_width=True)
-    r=genView(cols_origin,cols_target_label)
+    r=genView(cols_origin_auto,cols_target_label_auto)
     col3.subheader("Generated View Creation")
     col3.code(r, language='sql')
     get_view_btns(view_exist,r,col3,'COS')
 
-with tab3:
+with tab1:
     get_description('manual.png',100,f'''
     ## This Tab demonstrates a manual mapping.
     ### For each Source table column you can select the corresponding column from the {CP_NAME.title()} expected shema columns.
@@ -250,16 +268,20 @@ with tab3:
     selected_values = {}
     num_columns=4
     columns = st.columns(num_columns)
-    for i, (key, value) in enumerate(column_mapping.items()):
+    for i, col in  enumerate(cols_target_label):
         col_index = i % num_columns 
-        with columns[col_index]:     
-            selected_values[key] = st.selectbox(f"Select mapping for {key}:", list(column_mapping.values()), index=list(column_mapping.values()).index(value))
-    cols_origin = list(selected_values.keys())
-    cols_target_label = list(selected_values.values())   
-    r=genView(cols_origin,cols_target_label)
+        with columns[col_index]:   
+            try:
+                idx=list(column_mapping.values()).index(col)
+            except:
+                idx=0   
+            selected_values[col]=st.selectbox(f"Select mapping for {col}:", cols_origin,index=idx )
+    cols_origin = list(selected_values.values())
+    cols_target_label = list(selected_values.keys()) 
+    reqManual=genView(cols_origin,cols_target_label)
     st.subheader("Generated View Creation")
-    st.code(r, language='sql')
-    get_view_btns(view_exist,r,st,'MANUAL')
+    st.code(reqManual, language='sql')
+    get_view_btns(view_exist,reqManual,st,'MANUAL')
 
 if view_exist:
     curAppName=session.sql('SELECT CURRENT_DATABASE() ').collect()[0][0]
