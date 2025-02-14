@@ -13,7 +13,7 @@
 3. User with DEMO_ROLE (to be created manually or modify the snowflake.yml definition)
 4. Warehouse DEMO_WH (to be created manually modify the snowflake.yml definition)
 
-## Custome branding
+## Custom branding
 
 Drop the logo in the img/brands folder. The file name should match the company name.
 
