@@ -30,9 +30,9 @@ Run:
 
  ```sh
     snow app run --role DEMO_ROLE
-    ```
+ ```
  
  ```sh
     snow app run --role <YOU_OTHER_ROLE>
-    ```    
+ ```    
 
