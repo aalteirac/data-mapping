@@ -10,7 +10,19 @@
 
 1. Snowflake CLI
 2. Snowflake Account
-3. User with DEMO_ROLE (to be created manually)
+3. User with DEMO_ROLE (to be created manually or modify the snowflake.yml definition)
+4. Warehouse DEMO_WH (to be created manually modify the snowflake.yml definition)
+
+## Custome branding
+
+Drop the logo in the img/brands folder. The file name should match the company name.
+
+Supported file extensions are:
+* .png 
+* .jpg 
+* .jpeg
+* .gif
+* .webp
 
 ## Run instructions 
 
@@ -19,4 +31,8 @@ Run:
  ```sh
     snow app run --role DEMO_ROLE
     ```
+ 
+ ```sh
+    snow app run --role <YOU_OTHER_ROLE>
+    ```    
 
