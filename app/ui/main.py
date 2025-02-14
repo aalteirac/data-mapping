@@ -98,7 +98,7 @@ def genView(ori,tgt):
         raise ValueError("The number of original columns and new columns must match")
     column_mapping = ",\r\n\t".join(f"{orig} AS {new}" for orig, new in zip(ori, tgt))
     sql_stmt = f"""
-    CREATE OR REPLACE VIEW OUT.{CP_NAME.upper()}_VIEW AS SELECT 
+    CREATE OR REPLACE VIEW OUT.{ '_'.join( CP_NAME.upper().split() )}_VIEW AS SELECT 
     \t{column_mapping} 
     FROM REFERENCE('AUDIENCE_DATA')
     """
