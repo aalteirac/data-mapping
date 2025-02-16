@@ -18,6 +18,14 @@ st.set_page_config(
  
 session = get_active_session()
 
+def checkRefChanges():
+    if 'REF_CHANGED' not in st.session_state:
+        st.session_state['REF_CHANGED'] ='0'
+    ref=permissions.get_reference_associations("AUDIENCE_DATA")
+    changed=st.session_state['REF_CHANGED'] !=ref
+    st.session_state['REF_CHANGED'] =ref
+    return changed
+
 
 def init():
     filenames = os.listdir('./img/brands')
@@ -154,24 +162,25 @@ def get_fig_heatmap(similarity_matrix, columns_1, columns_2):
     return fig
 
 def get_view_btns(view_exist,r,el,pref,disabled=False):
+    vName=f"{'_'.join( CP_NAME.upper().split() )}"
     with st.container():
         if view_exist:
             if el.button('Recreate View',use_container_width=True,key=pref+'_one',disabled=disabled):
                 r=session.sql(r).collect()
-                session.sql(f"""grant SELECT on view OUT.{CP_NAME.upper()}_VIEW to application role app_public;""").collect()
-                res=session.sql(f"""SELECT * from OUT.{CP_NAME.upper()}_VIEW;""").collect()
+                session.sql(f"""grant SELECT on view OUT.{vName}_VIEW to application role app_public;""").collect()
+                res=session.sql(f"""SELECT * from OUT.{vName}_VIEW;""").collect()
                 # el.header('Generated View:')
                 # el.dataframe(res,use_container_width=True)
                 st.experimental_rerun()
         if view_exist:        
             if el.button('Delete View',use_container_width=True,key=pref+'_two'):
-                res=session.sql(f"""DROP VIEW OUT.{CP_NAME.upper()}_VIEW;""").collect()
+                res=session.sql(f"""DROP VIEW OUT.{vName}_VIEW;""").collect()
                 st.experimental_rerun()
         if not view_exist: 
             if el.button('Create View',use_container_width=True,key=pref+'_three',disabled=disabled):
                 r=session.sql(r).collect()
-                session.sql(f"""grant SELECT on view OUT.{CP_NAME.upper()}_VIEW to application role app_public;""").collect()
-                el=session.sql(f"""SELECT * from OUT.{CP_NAME.upper()}_VIEW;""").collect()
+                session.sql(f"""grant SELECT on view OUT.{vName}_VIEW to application role app_public;""").collect()
+                el=session.sql(f"""SELECT * from OUT.{vName}_VIEW;""").collect()
                 # st.header('Generated View:')
                 # el.dataframe(res,use_container_width=True)
                 st.experimental_rerun()
@@ -211,7 +220,8 @@ cols_target_label=[ 'EVENT_TIMESTAMP',
 
 cols_origin = session.sql("SELECT * FROM REFERENCE('AUDIENCE_DATA') limit 1").to_pandas().columns.values.tolist()
 
-view_exist=checkViewGenerated("OUT",f"{CP_NAME.upper()}_VIEW")[0][0]>0
+vName=f"{'_'.join( CP_NAME.upper().split() )}"
+view_exist=checkViewGenerated("OUT",f"{vName}_VIEW")[0][0]>0
 
 tab1, tab2, tab3 = st.tabs(["Manual Mapping","Automatic Mapping - Cosine","Auto Mappping -  AI" ])
 
@@ -226,7 +236,7 @@ with tab3:
     ''')
     if 'AI_RES' not in st.session_state:
         st.session_state['AI_RES'] =get_automapping(cols_origin,cols_target_label,mod)
-    if st.button("Refresh"):
+    if st.button("Refresh") or checkRefChanges()==True:
         st.session_state['AI_RES'] =get_automapping(cols_origin,cols_target_label,mod)   
     jres = json.loads(st.session_state['AI_RES'])
     cols_origin_AI = list(jres.keys())
