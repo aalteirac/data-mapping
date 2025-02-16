@@ -26,8 +26,22 @@ def checkRefChanges():
     st.session_state['REF_CHANGED'] =ref
     return changed
 
+def updateBrand(brand):
+    session.sql(f"UPDATE OUT.SETTINGS SET BRAND = '{brand}' WHERE true ").collect()
+
+def getBrand():
+    cur=session.sql(f"SELECT BRAND FROM OUT.SETTINGS").collect()
+    if len(cur)==0:
+        session.sql(f"INSERT INTO OUT.SETTINGS VALUES ('Snowflake');").collect()
+        cur=session.sql(f"SELECT BRAND FROM OUT.SETTINGS").collect()
+    return cur[0][0]    
 
 def init():
+    firstLoading=False
+    if 'FIRST_LOADING' not in st.session_state:
+        st.session_state['FIRST_LOADING']=True
+        firstLoading=True
+    b=getBrand()
     filenames = os.listdir('./img/brands')
     filenames = [ file for file in filenames if file.endswith( ('.png','.jpg','.jpeg','.gif','.webp') ) ]
     brands=[os.path.splitext(filename)[0] for filename in filenames]
@@ -36,31 +50,23 @@ def init():
     filenames.sort(key=lambda y: y.lower())
     global ref
     ref=permissions.get_reference_associations("AUDIENCE_DATA")
-    firstLoading=False
-    if 'BRANDING' not in st.session_state:
-        firstLoading=True
-        # try:
-        #     ox=brands.index('Snowflake')
-        # except:  
-        #     ox=0    
-        st.session_state['BRANDING'] =brands[0]
     global CP_NAME    
-    CP_NAME =  st.session_state['BRANDING']        
+    CP_NAME =  b        
     with st.sidebar:
-        placeholder = st.empty()
-        if firstLoading:
-            brand=st.selectbox("Choose Branding",brands,index=brands.index(st.session_state['BRANDING'].title()),key="brs")
-        else:
-            brand=st.selectbox("Choose Branding",brands,key="brs")    
-
-        st.session_state['BRANDING'] = st.session_state['brs'].upper()
-        CP_NAME=  st.session_state['BRANDING'] 
+        c1,c2=st.columns([10,1])
+        with c2:
+            render_image('system/empty.webp')  
+        placeholder = c1.empty()
+        with st.expander("UI Settings"):
+            if firstLoading==True:
+                st.session_state['brs']=getBrand()
+            brand=st.selectbox("Choose Branding",brands,key='brs')   
+            updateBrand(brand)
+            CP_NAME=  brand
         with placeholder:
-            idx=brands.index(brand)
+            idx=brands.index(CP_NAME)
             imgb=filenames[idx]
             render_image(f'''brands/{imgb}''')  
-        if st.button("Change Data Source"):
-            permissions.request_reference("AUDIENCE_DATA")
         with st.expander("Setup Sample DB"):
             if not permissions.get_held_account_privileges(["IMPORTED PRIVILEGES ON SNOWFLAKE DB"]):
                     permissions.request_account_privileges(["IMPORTED PRIVILEGES ON SNOWFLAKE DB"])
@@ -77,7 +83,8 @@ def init():
                     st.stop()
             if st.button('REVOKE FOR DELETION'):
                 res=session.sql("CALL out.revoke_grants()").collect()
-    
+        if st.button("Change Data Source"):
+            permissions.request_reference("AUDIENCE_DATA")
     st.markdown("# Data Preparation")  
     if len(ref)==0:
         st.info("Please Select Existing Table containing Audience Data")

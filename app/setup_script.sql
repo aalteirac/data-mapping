@@ -7,6 +7,8 @@ CREATE OR ALTER SCHEMA OUT;
 GRANT USAGE ON SCHEMA OUT TO APPLICATION ROLE APP_PUBLIC;
 GRANT USAGE ON SCHEMA LOGIC TO APPLICATION ROLE APP_PUBLIC;
 
+
+CREATE TABLE if not exists OUT.SETTINGS (brand varchar);
 -- prep for later ...
 create or replace procedure out.outDB(prefix varchar)
 RETURNS VARCHAR
