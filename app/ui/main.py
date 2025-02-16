@@ -52,11 +52,8 @@ def init():
     ref=permissions.get_reference_associations("AUDIENCE_DATA")
     global CP_NAME    
     CP_NAME =  b        
-    with st.sidebar:
-        c1,c2=st.columns([10,1])
-        with c2:
-            render_image('system/empty.webp')  
-        placeholder = c1.empty()
+    with st.sidebar: 
+        placeholder = st.container()
         with st.expander("UI Settings"):
             if firstLoading==True:
                 st.session_state['brs']=getBrand()
