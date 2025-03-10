@@ -14,7 +14,7 @@ entities:
       warehouse: DEMO_WH
   app:
     type: application
-    identifier: DATA_MAPPING_APP
+    identifier: '"DATA MAPPING APP"'
     from:
       target: pkg
     debug: false

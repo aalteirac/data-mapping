@@ -100,8 +100,8 @@ def get_automapping(colorig,coldest,model):
                                     $$
                                         {prompt}
                                         ###
-                                        first list is: {''.join(colorig)}
-                                        second list is: {''.join(coldest)}
+                                        first list is: {','.join(colorig)}
+                                        second list is: {','.join(coldest)}
                                         ###
                                     $$) as ANSWER
                 """
